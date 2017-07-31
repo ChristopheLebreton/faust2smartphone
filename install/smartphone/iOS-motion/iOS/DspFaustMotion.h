@@ -17,8 +17,8 @@
  ************************************************************************
  ************************************************************************/
 
-#ifndef __ios_api_motion__
-#define __ios_api_motion__
+#ifndef __api_motion__
+#define __api_motion__
 
 //===============API Reference==============
 //==========================================
@@ -52,7 +52,16 @@ public:
 	//--------------------------------------------------------
 	void stop();
     
+    //-----------------RENDER MOTION--------------------------
     void render();
+    
+    void sendInput(int,float);
+    
+    float getOutput(int);
+    
+    int getOutputChannelNum();
+    
+    int getInputChannelNum();
     
 	//---------------------`bool isRunning()`-----------------
 	// Returns `true` if audio is running.
@@ -205,6 +214,26 @@ public:
     // * `id`: id of the parameter
     //--------------------------------------------------------
     const char* getParamTooltip(int);
+    
+    //-----`const char* getParamLabel(const char* address)`-----
+    // Returns the label (description) of a parameter in function of
+    // its address (path).
+    //
+    // #### Arguments
+    //
+    // * `address`: address (path) of the parameter
+    //--------------------------------------------------------
+    const char* getParamLabel(const char*);
+    
+    //----`const char* getParamTooltip(int id)`---------------
+    // Returns the label (description) of a parameter in function
+    // of its ID.
+    //
+    // #### Arguments
+    //
+    // * `id`: id of the parameter
+    //--------------------------------------------------------
+    const char* getParamLabel(int);
 
 	//----`void propagateAcc(int acc, float v)`---------------
 	// Propagate the RAW value of a specific accelerometer

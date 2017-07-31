@@ -2,9 +2,6 @@
 A tool for musical mobile application using FAUST API.
 
 
-
-TEST AVEC Christophe
-
 ============
 
 INSTALLATION
@@ -31,7 +28,7 @@ _Open your terminal, cd to the folder you work, tap "faust2smartphone -help" to 
 
 1) For Simple Project
 
-    fasut2smartphone -ios/-android ***.dsp
+    fasut2smartphone -ios/-android toto.dsp
    
    _in Xcode or Android Studio project, DspFaust is added, create your own interface. 
 
@@ -59,7 +56,7 @@ _Open your terminal, cd to the folder you work, tap "faust2smartphone -help" to 
 
         toto = hslider("brasG_cours",0,0,1,0.01);
 
-        tata = hslider("vendre_front",0,0,1,0.01);
+        tata = hslider("ventre_front",0,0,1,0.01);
         
            **********************************
            ** motion support + cue manager **
@@ -82,11 +79,15 @@ _Open your terminal, cd to the folder you work, tap "faust2smartphone -help" to 
 
     -------------------------------------------------------------
 
-    "./updatecue ***" to update your cue manager.
+    "./updatecue toto" to update your cue manager.
+
+    "-iosplugin" to generate a project with Faust Plugin for iOS.
+
+    "-androidplugin" to generate a project with Faust Plugin for Android.
     
 3) Compile Application
     
-    ./compile -ios/android ***.
+    ./compile -ios/android toto
 
     _after edit your project, compile your app for your device.
 

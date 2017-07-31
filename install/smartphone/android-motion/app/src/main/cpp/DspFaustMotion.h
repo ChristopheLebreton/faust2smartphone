@@ -1,8 +1,8 @@
 /************************************************************************
  ************************************************************************
  FAUST API Architecture File
- Copyright (C) 2016 GRAME, Romain Michon, CCRMA - Stanford University
- Copyright (C) 2014-2016 GRAME, Centre National de Creation Musicale
+ Copyright (C) 2017 GRAME, Allen Weng, SHCM
+ Copyright (C) 2014-2017 GRAME, Centre National de Creation Musicale
  ---------------------------------------------------------------------
 
  This is sample code. This file is provided as an example of minimal
@@ -17,8 +17,8 @@
  ************************************************************************
  ************************************************************************/
 
-#ifndef __ios_api_motion__
-#define __ios_api_motion__
+#ifndef __api_motion__
+#define __api_motion__
 
 //===============API Reference==============
 //==========================================
@@ -52,7 +52,16 @@ public:
 	//--------------------------------------------------------
 	void stop();
     
+    //-----------------RENDER MOTION--------------------------
     void render();
+    
+    void sendInput(int,float);
+    
+    float getOutput(int);
+    
+    int getOutputChannelNum();
+    
+    int getInputChannelNum();
     
 	//---------------------`bool isRunning()`-----------------
 	// Returns `true` if audio is running.

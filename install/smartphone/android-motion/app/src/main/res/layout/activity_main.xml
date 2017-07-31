@@ -151,7 +151,7 @@
         android:layout_alignStart="@+id/prevCue"
         android:layout_alignTop="@+id/initCue"
         android:layout_alignBottom="@+id/initCue"
-        android:id="@+id/scrollView2">
+        android:id="@+id/scrollView">
 
 
         <RadioGroup
@@ -162,128 +162,6 @@
             android:layout_alignTop="@+id/initCue"
             android:visibility="invisible">
 
-
-            <RadioButton
-                android:id="@+id/hp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="hp"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/shok_thr"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="shok_thr"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/antirebon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="antirebon"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/lp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="lp"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tacc_thr"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tacc_thr"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tacc_gain"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tacc_gain"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tacc_up"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tacc_up"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tacc_down"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tacc_down"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tgyr_gain"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tgyr_gain"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tgyr_up"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tgyr_up"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/tgyr_down"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="tgyr_down"
-                android:textColor="@android:color/white" />
-
-            <RadioButton
-                android:id="@+id/osfproj"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignTop="@+id/radioGroup"
-                android:layout_toEndOf="@+id/radioGroup"
-                android:checked="false"
-                android:text="osfproj"
-                android:textColor="@android:color/white" />
-
-
         </RadioGroup>
 
     </ScrollView>
@@ -292,8 +170,8 @@
         android:id="@+id/SetParams"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/scrollView2"
-        android:layout_alignStart="@+id/scrollView2"
+        android:layout_alignEnd="@+id/scrollView"
+        android:layout_alignStart="@+id/scrollView"
         android:layout_below="@+id/prevCue"
         android:text="SetParams"
         android:textAlignment="textEnd"
@@ -305,47 +183,49 @@
         android:id="@+id/setMotion"
         android:layout_width="60dp"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/scrollView2"
-        android:layout_toEndOf="@+id/scrollView2"
         android:text="Set"
-        android:visibility="invisible" />
+        android:visibility="invisible"
+        android:layout_alignBaseline="@+id/defaultParams"
+        android:layout_alignBottom="@+id/defaultParams"
+        android:layout_toEndOf="@+id/scrollView"
+        android:layout_toStartOf="@+id/defaultParams" />
 
     <EditText
         android:id="@+id/paramValue"
         android:layout_width="120dp"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/SetParams"
+        android:layout_toEndOf="@+id/scrollView"
         android:ems="10"
-        android:inputType="number"
+        android:inputType="number|numberDecimal"
         android:singleLine="false"
         android:text="0.0"
         android:textColor="@android:color/white"
-        android:visibility="invisible"
-        android:layout_below="@+id/SetParams"
-        android:layout_toEndOf="@+id/scrollView2" />
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/defaultParams"
         android:layout_width="60dp"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/initCue"
-        android:layout_toEndOf="@+id/setMotion"
         android:text="init"
-        android:visibility="invisible" />
+        android:visibility="invisible"
+        android:layout_above="@+id/outputPort"
+        android:layout_alignEnd="@+id/appName" />
 
     <EditText
         android:id="@+id/ipAddress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/inputPort"
-        android:layout_alignBottom="@+id/inputPort"
-        android:layout_alignStart="@+id/scrollView2"
         android:ems="5"
         android:inputType="textUri"
         android:text="192.168.1.5"
         android:textAlignment="center"
         android:textColor="@android:color/background_light"
         android:textSize="14sp"
-        android:visibility="invisible" />
+        android:visibility="invisible"
+        android:layout_alignBaseline="@+id/inputPort"
+        android:layout_alignBottom="@+id/inputPort"
+        android:layout_alignParentStart="true" />
 
     <EditText
         android:id="@+id/inputPort"

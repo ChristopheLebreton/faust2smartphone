@@ -12,7 +12,7 @@
 #define kGUIUpdateRate 30
 
 #define SR 44100
-#define bufferSize 256
+#define bufferSize 512
 
 
 @interface ViewController ()
@@ -29,15 +29,17 @@
     
     // no sleep mode
     [[UIApplication sharedApplication] setIdleTimerDisabled:YES];
+    _pikerView.delegate = self;
+    _pikerView.dataSource = self;
     
-
     ////////////////////
     // init faust motor
     ////////////////////
     
-    dspFaust = new DspFaust(SR,bufferSize);
+    //dspFaustMotion = new DspFaustMotion(SR/bufferSize,1);
+    dspFaustMotion = new DspFaustMotion(SR, bufferSize);
     
-    dspFaustMotion = new DspFaustMotion(SR/bufferSize,1);
+    dspFaust = new DspFaust(dspFaustMotion,SR,bufferSize);
     
     ////////////////////////////////
     //Check the MetaData in console
@@ -53,6 +55,7 @@
     // check motion key word in address
     ///////////////////////////////////
     
+    dspFaust->checkAdress();
     [self checkAddress];
     
     
@@ -65,76 +68,72 @@
     [self startRotationMatrix];
     
     [self startUpdate];
-
+    
     [self displayTitle];
-    
-    
-    _pikerView.delegate = self;
-    _pikerView.dataSource = self;
-    
-    _motionParamArray = [[NSMutableArray alloc] init];
-    
-    NSArray *ParamArray = @[@"hp",@"shok_thr",@"antirebon",@"lp",@"tacc_thr",
-                          @"tacc_gain",@"tacc_up",@"tacc_down",@"tgyr_thr",
-                          @"tgyr_gain",@"tgyr_up",@"tgyr_down",@"osfproj"];
-    
-    [_motionParamArray addObjectsFromArray:ParamArray];
     
     [self loadDefaultParams];
     
-    
-    myCueNumArrary = [[NSMutableArray alloc] init];
-    
-    // load cues
-    NSString *pathCue = [NSString stringWithFormat:@"%@/cueNums.txt", [[NSBundle mainBundle] resourcePath]];
-    
-    NSString *myTextCues = [NSString stringWithContentsOfFile:pathCue encoding:NSUTF8StringEncoding error:nil];
-    
-    NSArray *myCues = [myTextCues componentsSeparatedByString:@";\n"];
-    
-    NSLog(@"Cue:%@",myCues);
-    [myCueNumArrary addObjectsFromArray:myCues];
-    
-    cueIndex = 0;
-    cueNum = [[myCueNumArrary objectAtIndex:cueIndex] integerValue];
-    cueIndexNext = 1;
-    cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
-    _cue.text = [NSString stringWithFormat:@"%ld",(long)cueNum];
-    _cueNext.text = [NSString stringWithFormat:@"%ld",(long)cueNumNext];
-    
-    
-    myCueTipsArrary = [[NSMutableArray alloc] init];
-    
-    // load cue Tips
-    NSString *pathTips = [NSString stringWithFormat:@"%@/cueTips.txt", [[NSBundle mainBundle] resourcePath]];
-    
-    NSString *myTextTips = [NSString stringWithContentsOfFile:pathTips encoding:NSUTF8StringEncoding error:nil];
-    
-    NSArray *myTips = [myTextTips componentsSeparatedByString:@";\n"];
-    
-    NSLog(@"Tips:%@",myTips);
-    [myCueTipsArrary addObjectsFromArray:myTips];
-    
-    if ([myCueTipsArrary count] != [myCueNumArrary count]) {
-        _tips.text = @"!Num of cue and tips must be same!";
-    } else {
-        _tips.text = [myCueTipsArrary objectAtIndex:0];
+    if (cueIsOn) {
+        myCueNumArrary = [[NSMutableArray alloc] init];
+        
+        // load cues
+        NSString *pathCue = [NSString stringWithFormat:@"%@/cueNums.txt", [[NSBundle mainBundle] resourcePath]];
+        
+        NSString *myTextCues = [NSString stringWithContentsOfFile:pathCue encoding:NSUTF8StringEncoding error:nil];
+        
+        NSArray *myCues = [myTextCues componentsSeparatedByString:@";\n"];
+        
+        NSLog(@"Cue:%@",myCues);
+        [myCueNumArrary addObjectsFromArray:myCues];
+        
+        cueIndex = 0;
+        cueNum = [[myCueNumArrary objectAtIndex:cueIndex] integerValue];
+        cueIndexNext = 1;
+        cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
+        _cue.text = [NSString stringWithFormat:@"%ld",(long)cueNum];
+        _cueNext.text = [NSString stringWithFormat:@"%ld",(long)cueNumNext];
+        
+        
+        myCueTipsArrary = [[NSMutableArray alloc] init];
+        
+        // load cue Tips
+        NSString *pathTips = [NSString stringWithFormat:@"%@/cueTips.txt", [[NSBundle mainBundle] resourcePath]];
+        
+        NSString *myTextTips = [NSString stringWithContentsOfFile:pathTips encoding:NSUTF8StringEncoding error:nil];
+        
+        NSArray *myTips = [myTextTips componentsSeparatedByString:@";\n"];
+        
+        NSLog(@"Tips:%@",myTips);
+        [myCueTipsArrary addObjectsFromArray:myTips];
+        
+        if ([myCueTipsArrary count] != [myCueNumArrary count]) {
+            _tips.text = @"!Num of cue and tips must be same!";
+        } else {
+            _tips.text = [myCueTipsArrary objectAtIndex:0];
+        }
     }
-    
     
     if (dspFaust->getOSCIsOn()) {
         _ip.enabled=true;
         _inPort.enabled=true;
         _outPort.enabled=true;
         _setOSC.enabled=true;
+        _ip.alpha=1;
+        _inPort.alpha=1;
+        _outPort.alpha=1;
+        _setOSC.alpha=1;
         _ip.text=oscAddress;
         _inPort.text=oscInPort;
         _outPort.text=oscOutPort;
     } else {
-        _ip.enabled=false;
+        _ip.hidden=false;
         _inPort.enabled=false;
         _outPort.enabled=false;
         _setOSC.enabled=false;
+        _ip.alpha=0;
+        _inPort.alpha=0;
+        _outPort.alpha=0;
+        _setOSC.alpha=0;
         _ip.text=@"NO";
         _inPort.text=@"NO";
         _outPort.text=@"NO";
@@ -163,61 +162,30 @@
     }
     
     
-
 }
 
 
 -(void) loadDefaultParams {
     
-    // Default setting for params of motion
-    NSDictionary *appDefaults = [NSDictionary dictionaryWithObjectsAndKeys:
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/hp")], @"/Motion/hp",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/shok_thr")], @"/Motion/shok_thr",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/antirebon")], @"/Motion/antirebon",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/lp")], @"/Motion/lp",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tacc_thr")], @"/Motion/tacc_thr",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tacc_gain")], @"/Motion/tacc_gain",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tacc_up")], @"/Motion/tacc_up",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tacc_down")], @"/Motion/tacc_down",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tgyr_thr")], @"/Motion/tgyr_thr",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tgyr_gain")], @"/Motion/tgyr_gain",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tgyr_up")], @"/Motion/tgyr_up",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/tgyr_down")], @"/Motion/tgyr_down",
-                                 [NSNumber numberWithFloat:dspFaustMotion->getParamInit("/Motion/osfproj")], @"/Motion/osfproj",
-                                 @"192.168.1.20", @"oscAddress",
-                                 @"5510", @"oscInPort",
-                                 @"5511", @"oscOutPort",
-                                 nil];
-    [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
+    NSMutableDictionary *appDefaultsDictionary = [NSMutableDictionary dictionaryWithCapacity:_motionParamAddress.count];
     
-    hpValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/hp"];
-    shok_thrValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/shok_thr"];
-    antirebonValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/antirebon"];
-    lpValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/lp"];
-    tacc_thrValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tacc_thr"];
-    tacc_gainValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tacc_gain"];
-    tacc_upValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tacc_up"];
-    tacc_downValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tacc_down"];
-    tgyr_thrValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tgyr_thr"];
-    tgyr_gainValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tgyr_gain"];
-    tgyr_upValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tgyr_up"];
-    tgyr_downValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/tgyr_down"];
-    osfprojValue = (float)[[NSUserDefaults standardUserDefaults] floatForKey:@"/Motion/osfproj"];
+    for (int i=0; i<_motionParamAddress.count; i++) {
+        [appDefaultsDictionary setValue:
+         [NSNumber numberWithFloat:dspFaustMotion->getParamInit([_motionParamAddress[i] UTF8String])] forKey:_motionParamArray[i]];
+    }
     
+    [appDefaultsDictionary setValue:@"192.168.1.20" forKey:@"oscAddress"];
+    [appDefaultsDictionary setValue:@"5510" forKey:@"oscInPort"];
+    [appDefaultsDictionary setValue:@"5511" forKey:@"oscOutPort"];
     
-    dspFaustMotion->setParamValue("/Motion/hp", hpValue);
-    dspFaustMotion->setParamValue("/Motion/shok_thr", shok_thrValue);
-    dspFaustMotion->setParamValue("/Motion/antirebon", antirebonValue);
-    dspFaustMotion->setParamValue("/Motion/tacc_thr", tacc_thrValue);
-    dspFaustMotion->setParamValue("/Motion/tacc_gain", tacc_gainValue);
-    dspFaustMotion->setParamValue("/Motion/tacc_up", tacc_upValue);
-    dspFaustMotion->setParamValue("/Motion/tacc_down", tacc_downValue);
-    dspFaustMotion->setParamValue("/Motion/tgyr_thr", tgyr_thrValue);
-    dspFaustMotion->setParamValue("/Motion/tgyr_gain", tgyr_gainValue);
-    dspFaustMotion->setParamValue("/Motion/tgyr_up", tgyr_upValue);
-    dspFaustMotion->setParamValue("/Motion/tgyr_down", tgyr_downValue);
-    dspFaustMotion->setParamValue("/Motion/lp", lpValue);
-    dspFaustMotion->setParamValue("/Motion/osfproj", osfprojValue);
+    [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaultsDictionary];
+    
+    for (int i=0; i<_motionParamAddress.count; i++) {
+        
+        dspFaustMotion->setParamValue([_motionParamAddress[i] UTF8String],
+                                      (float)[[NSUserDefaults standardUserDefaults] floatForKey:_motionParamArray[i]]);
+        
+    }
     
     if (dspFaust->getOSCIsOn()) {
         oscAddress = [[NSUserDefaults standardUserDefaults] stringForKey:@"oscAddress"];
@@ -231,7 +199,7 @@
 
 
 -(void) resetDefaultParams {
-
+    
     NSDictionary* dict = [[NSUserDefaults standardUserDefaults] dictionaryRepresentation];
     NSArray* keysArray = [dict allKeys];
     int i = 0;
@@ -240,10 +208,7 @@
     for (i = 0; i < [keysArray count]; ++i)
     {
         key = ((NSString*)[keysArray objectAtIndex:i]);
-        //if ([key compare:@"sampleRate"] != NSOrderedSame)
-        //{
         [[NSUserDefaults standardUserDefaults] removeObjectForKey:key];
-        //}
     }
     
     [[NSUserDefaults standardUserDefaults] synchronize];
@@ -259,7 +224,7 @@
         
         dspFaust->setOSCValue([oscAddress cStringUsingEncoding:[NSString defaultCStringEncoding]], [oscInPort cStringUsingEncoding:[NSString defaultCStringEncoding]], [oscOutPort cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
-
+    
 }
 
 -(void)textFieldDidBeginEditing:(UITextField *)textField
@@ -288,305 +253,29 @@
 
 - (void) checkAddress {
     
+    std::vector<std::string>motionParamNames;
+    std::vector<std::string>motionParamAddress;
+    _motionParamArray = [[NSMutableArray alloc] init];
+    _motionParamAddress = [[NSMutableArray alloc] init];
+    
+    for (int i=0; i<dspFaustMotion->getParamsCount(); i++) {
+        NSString *dataMotion = [NSString stringWithUTF8String:dspFaustMotion->getParamAddress(i)];
+        if ([dataMotion hasSuffix:@"_Param"]) {
+            motionParamNames.push_back(dspFaustMotion->getParamTooltip(i));
+            motionParamAddress.push_back(dspFaustMotion->getParamAddress(i));
+        }
+    }
+    for (int i=0; i<motionParamNames.size(); i++) {
+        //printf("%i=%s",i,motionParamNames[i].c_str());
+        [_motionParamArray addObject:[NSString stringWithUTF8String:motionParamNames[i].c_str()]];
+        [_motionParamAddress addObject:[NSString stringWithUTF8String:motionParamAddress[i].c_str()]];
+    }
+    
+    paramsOn = new BOOL[_motionParamAddress.count];
+    
     for(int i=0; i<dspFaust->getParamsCount(); i++){
         NSString *data = [NSString stringWithUTF8String:dspFaust->getParamAddress(i)];
-        if ([data hasSuffix:@"/totalaccel"]) {
-            totalAccelIsOn = true;
-            totalAccelAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/totalaccelOn", 1);
-        } else if ([data hasSuffix:@"/totalgyro"]) {
-            totalGyroIsOn = true;
-            totalGyroAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/totalgyroOn", 1);
-        } else if ([data hasSuffix:@"/sxp"]) {
-            sxpIsOn = true;
-            sxpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/sxpOn", 1);
-        } else if ([data hasSuffix:@"/syp"]) {
-            sypIsOn = true;
-            sypAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/sypOn", 1);
-        } else if ([data hasSuffix:@"/szp"]) {
-            szpIsOn = true;
-            szpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/szpOn", 1);
-        } else if ([data hasSuffix:@"/sxn"]) {
-            sxnIsOn = true;
-            sxnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/sxnOn", 1);
-        } else if ([data hasSuffix:@"/syn"]) {
-            synIsOn = true;
-            synAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/synOn", 1);
-        } else if ([data hasSuffix:@"/szn"]) {
-            sznIsOn = true;
-            sznAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/sznOn", 1);
-        } else if ([data hasSuffix:@"/ixp"]) {
-            ixpIsOn = true;
-            ixpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ixpOn", 1);
-        } else if ([data hasSuffix:@"/iyp"]) {
-            iypIsOn = true;
-            iypAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/iypOn", 1);
-        } else if ([data hasSuffix:@"/izp"]) {
-            izpIsOn = true;
-            izpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/izpOn", 1);
-        } else if ([data hasSuffix:@"/ixn"]) {
-            ixnIsOn = true;
-            ixnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ixnOn", 1);
-        } else if ([data hasSuffix:@"/iyn"]) {
-            iynIsOn = true;
-            iynAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/iynOn", 1);
-        } else if ([data hasSuffix:@"/izn"]) {
-            iznIsOn = true;
-            iznAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/iznOn", 1);
-        } else if ([data hasSuffix:@"/pixp"]) {
-            pixpIsOn = true;
-            pixpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pixpOn", 1);
-        } else if ([data hasSuffix:@"/piyp"]) {
-            piypIsOn = true;
-            piypAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/piypOn", 1);
-        } else if ([data hasSuffix:@"/pizp"]) {
-            pizpIsOn = true;
-            pizpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pizpOn", 1);
-        } else if ([data hasSuffix:@"/pixn"]) {
-            pixnIsOn = true;
-            pixnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pixnOn", 1);
-        } else if ([data hasSuffix:@"/piyn"]) {
-            piynIsOn = true;
-            piynAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/piynOn", 1);
-        } else if ([data hasSuffix:@"/pizn"]) {
-            piznIsOn = true;
-            piznAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/piznOn", 1);
-        } else if ([data hasSuffix:@"/axpn"]) {
-            axpnIsOn = true;
-            axpnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/axpnOn", 1);
-        } else if ([data hasSuffix:@"/aypn"]) {
-            aypnIsOn = true;
-            aypnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/aypnOn", 1);
-        } else if ([data hasSuffix:@"/azpn"]) {
-            azpnIsOn = true;
-            azpnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/azpnOn", 1);
-        } else if ([data hasSuffix:@"/axp"]) {
-            axpIsOn = true;
-            axpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/axpOn", 1);
-        } else if ([data hasSuffix:@"/ayp"]) {
-            aypIsOn = true;
-            aypAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/aypOn", 1);
-        } else if ([data hasSuffix:@"/azp"]) {
-            azpIsOn = true;
-            azpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/azpOn", 1);
-        } else if ([data hasSuffix:@"/axn"]) {
-            axnIsOn = true;
-            axnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/axnOn", 1);
-        } else if ([data hasSuffix:@"/ayn"]) {
-            aynIsOn = true;
-            aynAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/aynOn", 1);
-        } else if ([data hasSuffix:@"/azn"]) {
-            aznIsOn = true;
-            aznAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/aznOn", 1);
-        } else if ([data hasSuffix:@"/gxpn"]) {
-            gxpnIsOn = true;
-            gxpnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gxpnOn", 1);
-        } else if ([data hasSuffix:@"/gypn"]) {
-            gypnIsOn = true;
-            gypnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gypnOn", 1);
-        } else if ([data hasSuffix:@"/gzpn"]) {
-            gzpnIsOn = true;
-            gzpnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gzpnOn", 1);
-        } else if ([data hasSuffix:@"/gxp"]) {
-            gxpIsOn = true;
-            gxpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gxpOn", 1);
-        } else if ([data hasSuffix:@"/gyp"]) {
-            gypIsOn = true;
-            gypAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gypOn", 1);
-        } else if ([data hasSuffix:@"/gzp"]) {
-            gzpIsOn = true;
-            gzpAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gzpOn", 1);
-        } else if ([data hasSuffix:@"/gxn"]) {
-            gxnIsOn = true;
-            gxnAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gxnOn", 1);
-        } else if ([data hasSuffix:@"/gyn"]) {
-            gynIsOn = true;
-            gynAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gynOn", 1);
-        } else if ([data hasSuffix:@"/gzn"]) {
-            gznIsOn = true;
-            gznAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/gznOn", 1);
-        } else if ([data hasSuffix:@"/brasG_cour"]) {
-            brasGcourIsOn = true;
-            brasGcourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_courOn", 1);
-        } else if ([data hasSuffix:@"/brasG_rear"]) {
-            brasGrearIsOn = true;
-            brasGrearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_rearOn", 1);
-        } else if ([data hasSuffix:@"/brasG_jardin"]) {
-            brasGjardinIsOn = true;
-            brasGjardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_jardinOn", 1);
-        } else if ([data hasSuffix:@"/brasG_front"]) {
-            brasGfrontIsOn = true;
-            brasGfrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_frontOn", 1);
-        } else if ([data hasSuffix:@"/brasG_down"]) {
-            brasGdownIsOn = true;
-            brasGdownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_downOn", 1);
-        } else if ([data hasSuffix:@"/brasG_up"]) {
-            brasGupIsOn = true;
-            brasGupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasG_upOn", 1);
-        } else if ([data hasSuffix:@"/pieds_cour"]) {
-            piedscourIsOn = true;
-            piedscourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_courOn", 1);
-        } else if ([data hasSuffix:@"/pieds_rear"]) {
-            piedsrearIsOn = true;
-            piedsrearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_rearOn", 1);
-        } else if ([data hasSuffix:@"/pieds_jardin"]) {
-            piedsjardinIsOn = true;
-            piedsjardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_jardinOn", 1);
-        } else if ([data hasSuffix:@"/pieds_front"]) {
-            piedsfrontIsOn = true;
-            piedsfrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_frontOn", 1);
-        } else if ([data hasSuffix:@"/pieds_down"]) {
-            piedsdownIsOn = true;
-            piedsdownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_downOn", 1);
-        } else if ([data hasSuffix:@"/pieds_up"]) {
-            piedsupIsOn = true;
-            piedsupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/pieds_upOn", 1);
-        } else if ([data hasSuffix:@"/dos_cour"]) {
-            doscourIsOn = true;
-            doscourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_courOn", 1);
-        } else if ([data hasSuffix:@"/dos_rear"]) {
-            dosrearIsOn = true;
-            dosrearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_rearOn", 1);
-        } else if ([data hasSuffix:@"/dos_jardin"]) {
-            dosjardinIsOn = true;
-            dosjardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_jardinOn", 1);
-        } else if ([data hasSuffix:@"/dos_front"]) {
-            dosfrontIsOn = true;
-            dosfrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_frontOn", 1);
-        } else if ([data hasSuffix:@"/dos_down"]) {
-            dosdownIsOn = true;
-            dosdownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_downOn", 1);
-        } else if ([data hasSuffix:@"/dos_up"]) {
-            dosupIsOn = true;
-            dosupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/dos_upOn", 1);
-        } else if ([data hasSuffix:@"/brasD_cour"]) {
-            brasDcourIsOn = true;
-            brasDcourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_courOn", 1);
-        } else if ([data hasSuffix:@"/brasD_rear"]) {
-            brasDrearIsOn = true;
-            brasDrearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_rearOn", 1);
-        } else if ([data hasSuffix:@"/brasD_jardin"]) {
-            brasDjardinIsOn = true;
-            brasDjardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_jardinOn", 1);
-        } else if ([data hasSuffix:@"/brasD_front"]) {
-            brasDfrontIsOn = true;
-            brasDfrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_frontOn", 1);
-        } else if ([data hasSuffix:@"/brasD_down"]) {
-            brasDdownIsOn = true;
-            brasDdownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_downOn", 1);
-        } else if ([data hasSuffix:@"/brasD_up"]) {
-            brasDupIsOn = true;
-            brasDupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/brasD_upOn", 1);
-        } else if ([data hasSuffix:@"/tete_cour"]) {
-            tetecourIsOn = true;
-            tetecourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_courOn", 1);
-        } else if ([data hasSuffix:@"/tete_rear"]) {
-            teterearIsOn = true;
-            teterearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_rearOn", 1);
-        } else if ([data hasSuffix:@"/tete_jardin"]) {
-            tetejardinIsOn = true;
-            tetejardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_jardinOn", 1);
-        } else if ([data hasSuffix:@"/tete_front"]) {
-            tetefrontIsOn = true;
-            tetefrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_frontOn", 1);
-        } else if ([data hasSuffix:@"/tete_down"]) {
-            tetedownIsOn = true;
-            tetedownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_downOn", 1);
-        } else if ([data hasSuffix:@"/tete_up"]) {
-            teteupIsOn = true;
-            teteupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/tete_upOn", 1);
-        }else if ([data hasSuffix:@"/ventre_cour"]) {
-            ventrecourIsOn = true;
-            ventrecourAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_courOn", 1);
-        } else if ([data hasSuffix:@"/ventre_rear"]) {
-            ventrerearIsOn = true;
-            ventrerearAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_rearOn", 1);
-        } else if ([data hasSuffix:@"/ventre_jardin"]) {
-            ventrejardinIsOn = true;
-            ventrejardinAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_jardinOn", 1);
-        } else if ([data hasSuffix:@"/ventre_front"]) {
-            ventrefrontIsOn = true;
-            ventrefrontAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_frontOn", 1);
-        } else if ([data hasSuffix:@"/ventre_down"]) {
-            ventredownIsOn = true;
-            ventredownAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_downOn", 1);
-        } else if ([data hasSuffix:@"/ventre_up"]) {
-            ventreupIsOn = true;
-            ventreupAddress = dspFaust->getParamAddress(i);
-            dspFaustMotion->setParamValue("/Motion/ventre_upOn", 1);
-        } else if ([data hasSuffix:@"/touchgate"]) {
+        if ([data hasSuffix:@"/touchgate"]) {
             touchGateIsOn = true;
             touchGateAddress = dspFaust->getParamAddress(i);
         } else if ([data hasSuffix:@"/screenx"]) {
@@ -601,22 +290,17 @@
         } else if ([data hasSuffix:@"/cue"]) {
             cueIsOn = true;
             cueAddress = dspFaust->getParamAddress(i);
-        } else if ([data hasSuffix:@"/tip"]) {
-            tipIsOn = true;
-            [self startUpdateGUI];
-            tipAddress = dspFaust->getParamAddress(i);
         }
         
     }
-    
     
 }
 
 - (void)startUpdate
 {
     
-    _sensorTimer = [NSTimer scheduledTimerWithTimeInterval:1./(SR/bufferSize) target:self
-                                            selector:@selector(updateMotion) userInfo:nil repeats:YES];
+    _sensorTimer = [NSTimer scheduledTimerWithTimeInterval:1.f/(SR/bufferSize) target:self
+                                                  selector:@selector(updateMotion) userInfo:nil repeats:YES];
     
 }
 
@@ -641,17 +325,17 @@
     }
     
     if (magneticHeadingIsOn) {
-    if (_locationManager == nil) {
-        
-        _locationManager = [[CLLocationManager alloc] init];
-        _locationManager.delegate = self;
-        _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
-        _locationManager.distanceFilter = kCLHeadingFilterNone;
-        _locationManager.headingFilter = 5;//kCLHeadingFilterNone;
-        magnetic = 0;
-        offset = 0;
-        [_locationManager startUpdatingHeading];
-    }
+        if (_locationManager == nil) {
+            
+            _locationManager = [[CLLocationManager alloc] init];
+            _locationManager.delegate = self;
+            _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+            _locationManager.distanceFilter = kCLHeadingFilterNone;
+            _locationManager.headingFilter = 5;//kCLHeadingFilterNone;
+            magnetic = 0;
+            offset = 0;
+            [_locationManager startUpdatingHeading];
+        }
     }
 }
 
@@ -668,11 +352,11 @@
     }
     
     if (magneticHeadingIsOn) {
-    if (_locationManager != nil) {
-        
-        [_locationManager stopUpdatingHeading];
-        _locationManager = nil;
-    }
+        if (_locationManager != nil) {
+            
+            [_locationManager stopUpdatingHeading];
+            _locationManager = nil;
+        }
     }
 }
 
@@ -705,245 +389,14 @@
     dspFaustMotion->propagateGyr(1, _motionManager.gyroData.rotationRate.y);
     dspFaustMotion->propagateGyr(2, _motionManager.gyroData.rotationRate.z);
     
-    dspFaustMotion->render();
-    
-    [self sendMotion];
     
 }
 
-- (void) sendMotion  {
-    
-    if (totalAccelIsOn) {
-        dspFaust->setParamValue(totalAccelAddress, dspFaustMotion->getParamValue("/Motion/Mtotalaccel"));
-    }
-    if (totalGyroIsOn) {
-        dspFaust->setParamValue(totalGyroAddress, dspFaustMotion->getParamValue("/Motion/Mtotalgyro"));
-    }
-    if (sxpIsOn) {
-        dspFaust->setParamValue(sxpAddress, dspFaustMotion->getParamValue("/Motion/Msxp"));
-    }
-    if (sypIsOn) {
-        dspFaust->setParamValue(sypAddress, dspFaustMotion->getParamValue("/Motion/Msyp"));
-    }
-    if (szpIsOn) {
-        dspFaust->setParamValue(szpAddress, dspFaustMotion->getParamValue("/Motion/Mszp"));
-    }
-    if (sxnIsOn) {
-        dspFaust->setParamValue(sxnAddress, dspFaustMotion->getParamValue("/Motion/Msxn"));
-    }
-    if (synIsOn) {
-        dspFaust->setParamValue(synAddress, dspFaustMotion->getParamValue("/Motion/Msyn"));
-    }
-    if (sznIsOn) {
-        dspFaust->setParamValue(sznAddress, dspFaustMotion->getParamValue("/Motion/Mszn"));
-    }
-    if (ixpIsOn) {
-        dspFaust->setParamValue(ixpAddress, dspFaustMotion->getParamValue("/Motion/Mixp"));
-    }
-    if (iypIsOn) {
-        dspFaust->setParamValue(iypAddress, dspFaustMotion->getParamValue("/Motion/Miyp"));
-    }
-    if (izpIsOn) {
-        dspFaust->setParamValue(izpAddress, dspFaustMotion->getParamValue("/Motion/Mizp"));
-    }
-    if (ixnIsOn) {
-        dspFaust->setParamValue(ixnAddress, dspFaustMotion->getParamValue("/Motion/Mixn"));
-    }
-    if (iynIsOn) {
-        dspFaust->setParamValue(iynAddress, dspFaustMotion->getParamValue("/Motion/Miyn"));
-    }
-    if (iznIsOn) {
-        dspFaust->setParamValue(iznAddress, dspFaustMotion->getParamValue("/Motion/Mizn"));
-    }
-    if (pixpIsOn) {
-        dspFaust->setParamValue(pixpAddress, dspFaustMotion->getParamValue("/Motion/Mpixp"));
-    }
-    if (piypIsOn) {
-        dspFaust->setParamValue(piypAddress, dspFaustMotion->getParamValue("/Motion/Mpiyp"));
-    }
-    if (pizpIsOn) {
-        dspFaust->setParamValue(pizpAddress, dspFaustMotion->getParamValue("/Motion/Mpizp"));
-    }
-    if (pixnIsOn) {
-        dspFaust->setParamValue(pixnAddress, dspFaustMotion->getParamValue("/Motion/Mpixn"));
-    }
-    if (piynIsOn) {
-        dspFaust->setParamValue(piynAddress, dspFaustMotion->getParamValue("/Motion/Mpiyn"));
-    }
-    if (piznIsOn) {
-        dspFaust->setParamValue(piznAddress, dspFaustMotion->getParamValue("/Motion/Mpizn"));
-    }
-    if (axpnIsOn) {
-        dspFaust->setParamValue(axpnAddress, dspFaustMotion->getParamValue("/Motion/Maxpn"));
-    }
-    if (aypnIsOn) {
-        dspFaust->setParamValue(aypnAddress, dspFaustMotion->getParamValue("/Motion/Maypn"));
-    }
-    if (azpnIsOn) {
-        dspFaust->setParamValue(azpnAddress, dspFaustMotion->getParamValue("/Motion/Mazpn"));
-    }
-    if (axpIsOn) {
-        dspFaust->setParamValue(axpAddress, dspFaustMotion->getParamValue("/Motion/Maxp"));
-    }
-    if (aypIsOn) {
-        dspFaust->setParamValue(aypAddress, dspFaustMotion->getParamValue("/Motion/Mayp"));
-    }
-    if (azpIsOn) {
-        dspFaust->setParamValue(azpAddress, dspFaustMotion->getParamValue("/Motion/Mazp"));
-    }
-    if (axnIsOn) {
-        dspFaust->setParamValue(axnAddress, dspFaustMotion->getParamValue("/Motion/Maxn"));
-    }
-    if (aynIsOn) {
-        dspFaust->setParamValue(aynAddress, dspFaustMotion->getParamValue("/Motion/Mayn"));
-    }
-    if (aznIsOn) {
-        dspFaust->setParamValue(aznAddress, dspFaustMotion->getParamValue("/Motion/Mazn"));
-    }
-    if (gxpnIsOn) {
-        dspFaust->setParamValue(gxpnAddress, dspFaustMotion->getParamValue("/Motion/Mgxpn"));
-    }
-    if (gypnIsOn) {
-        dspFaust->setParamValue(gypnAddress, dspFaustMotion->getParamValue("/Motion/Mgypn"));
-    }
-    if (gzpnIsOn) {
-        dspFaust->setParamValue(gzpnAddress, dspFaustMotion->getParamValue("/Motion/Mgzpn"));
-    }
-    if (gxpIsOn) {
-        dspFaust->setParamValue(gxpAddress, dspFaustMotion->getParamValue("/Motion/Mgxp"));
-    }
-    if (gypIsOn) {
-        dspFaust->setParamValue(gypAddress, dspFaustMotion->getParamValue("/Motion/Mgyp"));
-    }
-    if (gzpIsOn) {
-        dspFaust->setParamValue(gzpAddress, dspFaustMotion->getParamValue("/Motion/Mgzp"));
-    }
-    if (gypIsOn) {
-        dspFaust->setParamValue(gypAddress, dspFaustMotion->getParamValue("/Motion/Mgyp"));
-    }
-    if (gxnIsOn) {
-        dspFaust->setParamValue(gxnAddress, dspFaustMotion->getParamValue("/Motion/Mgxn"));
-    }
-    if (gynIsOn) {
-        dspFaust->setParamValue(gynAddress, dspFaustMotion->getParamValue("/Motion/Mgyn"));
-    }
-    if (gznIsOn) {
-        dspFaust->setParamValue(gznAddress, dspFaustMotion->getParamValue("/Motion/Mgzn"));
-    }
-    if (brasGcourIsOn) {
-        dspFaust->setParamValue(brasGcourAddress, dspFaustMotion->getParamValue("/Motion/brasG_cour"));
-    }
-    if (brasGrearIsOn) {
-        dspFaust->setParamValue(brasGrearAddress, dspFaustMotion->getParamValue("/Motion/bras_Grear"));
-    }
-    if (brasGjardinIsOn) {
-        dspFaust->setParamValue(brasGjardinAddress, dspFaustMotion->getParamValue("/Motion/brasG_jardin"));
-    }
-    if (brasGfrontIsOn) {
-        dspFaust->setParamValue(brasGfrontAddress, dspFaustMotion->getParamValue("/Motion/brasG_front"));
-    }
-    if (brasGdownIsOn) {
-        dspFaust->setParamValue(brasGdownAddress, dspFaustMotion->getParamValue("/Motion/brasG_down"));
-    }
-    if (brasGupIsOn) {
-        dspFaust->setParamValue(brasGupAddress, dspFaustMotion->getParamValue("/Motion/brasG_up"));
-    }
-    if (piedscourIsOn) {
-        dspFaust->setParamValue(piedscourAddress, dspFaustMotion->getParamValue("/Motion/pieds_cour"));
-    }
-    if (piedsrearIsOn) {
-        dspFaust->setParamValue(piedsrearAddress, dspFaustMotion->getParamValue("/Motion/pieds_Grear"));
-    }
-    if (piedsjardinIsOn) {
-        dspFaust->setParamValue(piedsjardinAddress, dspFaustMotion->getParamValue("/Motion/pieds_jardin"));
-    }
-    if (piedsfrontIsOn) {
-        dspFaust->setParamValue(piedsfrontAddress, dspFaustMotion->getParamValue("/Motion/pieds_front"));
-    }
-    if (piedsdownIsOn) {
-        dspFaust->setParamValue(piedsdownAddress, dspFaustMotion->getParamValue("/Motion/pieds_down"));
-    }
-    if (piedsupIsOn) {
-        dspFaust->setParamValue(piedsupAddress, dspFaustMotion->getParamValue("/Motion/pieds_up"));
-    }
-    if (doscourIsOn) {
-        dspFaust->setParamValue(doscourAddress, dspFaustMotion->getParamValue("/Motion/dos_cour"));
-    }
-    if (dosrearIsOn) {
-        dspFaust->setParamValue(dosrearAddress, dspFaustMotion->getParamValue("/Motion/dos_Grear"));
-    }
-    if (dosjardinIsOn) {
-        dspFaust->setParamValue(dosjardinAddress, dspFaustMotion->getParamValue("/Motion/dos_jardin"));
-    }
-    if (dosfrontIsOn) {
-        dspFaust->setParamValue(dosfrontAddress, dspFaustMotion->getParamValue("/Motion/dos_front"));
-    }
-    if (dosdownIsOn) {
-        dspFaust->setParamValue(dosdownAddress, dspFaustMotion->getParamValue("/Motion/dos_down"));
-    }
-    if (dosupIsOn) {
-        dspFaust->setParamValue(dosupAddress, dspFaustMotion->getParamValue("/Motion/dos_up"));
-    }
-    if (brasDcourIsOn) {
-        dspFaust->setParamValue(brasDcourAddress, dspFaustMotion->getParamValue("/Motion/brasD_cour"));
-    }
-    if (brasDrearIsOn) {
-        dspFaust->setParamValue(brasDrearAddress, dspFaustMotion->getParamValue("/Motion/brasD_Grear"));
-    }
-    if (brasDjardinIsOn) {
-        dspFaust->setParamValue(brasDjardinAddress, dspFaustMotion->getParamValue("/Motion/brasD_jardin"));
-    }
-    if (brasDfrontIsOn) {
-        dspFaust->setParamValue(brasDfrontAddress, dspFaustMotion->getParamValue("/Motion/brasD_front"));
-    }
-    if (brasDdownIsOn) {
-        dspFaust->setParamValue(brasDdownAddress, dspFaustMotion->getParamValue("/Motion/brasD_down"));
-    }
-    if (brasDupIsOn) {
-        dspFaust->setParamValue(brasDupAddress, dspFaustMotion->getParamValue("/Motion/brasD_up"));
-    }
-    if (tetecourIsOn) {
-        dspFaust->setParamValue(tetecourAddress, dspFaustMotion->getParamValue("/Motion/tete_cour"));
-    }
-    if (teterearIsOn) {
-        dspFaust->setParamValue(teterearAddress, dspFaustMotion->getParamValue("/Motion/tete_Grear"));
-    }
-    if (tetejardinIsOn) {
-        dspFaust->setParamValue(tetejardinAddress, dspFaustMotion->getParamValue("/Motion/tete_jardin"));
-    }
-    if (tetefrontIsOn) {
-        dspFaust->setParamValue(tetefrontAddress, dspFaustMotion->getParamValue("/Motion/tete_front"));
-    }
-    if (tetedownIsOn) {
-        dspFaust->setParamValue(tetedownAddress, dspFaustMotion->getParamValue("/Motion/tete_down"));
-    }
-    if (teteupIsOn) {
-        dspFaust->setParamValue(teteupAddress, dspFaustMotion->getParamValue("/Motion/tete_up"));
-    }
-    if (ventrecourIsOn) {
-        dspFaust->setParamValue(ventrecourAddress, dspFaustMotion->getParamValue("/Motion/ventre_cour"));
-    }
-    if (ventrerearIsOn) {
-        dspFaust->setParamValue(ventrerearAddress, dspFaustMotion->getParamValue("/Motion/ventre_Grear"));
-    }
-    if (ventrejardinIsOn) {
-        dspFaust->setParamValue(ventrejardinAddress, dspFaustMotion->getParamValue("/Motion/ventre_jardin"));
-    }
-    if (ventrefrontIsOn) {
-        dspFaust->setParamValue(ventrefrontAddress, dspFaustMotion->getParamValue("/Motion/ventre_front"));
-    }
-    if (ventredownIsOn) {
-        dspFaust->setParamValue(ventredownAddress, dspFaustMotion->getParamValue("/Motion/ventre_down"));
-    }
-    if (ventreupIsOn) {
-        dspFaust->setParamValue(ventreupAddress, dspFaustMotion->getParamValue("/Motion/ventre_up"));
-    }
-}
 
 - (void)startRotationMatrix
 {
     
-    CGFloat updateInterval = 1./(SR/bufferSize);
+    CGFloat updateInterval = 1.f/(SR/bufferSize);
     //referenceAttitude = _motionManager.deviceMotion.attitude;
     // delay pour init frame
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC));
@@ -953,115 +406,23 @@
     [_motionManager setDeviceMotionUpdateInterval:updateInterval];
     NSOperationQueue *motionQueue = [[NSOperationQueue alloc] init];
     [_motionManager startDeviceMotionUpdatesToQueue: motionQueue
-                                       withHandler:^(CMDeviceMotion* motion, NSError* error){
-                                           
-        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-            
-            referenceMatrix = motion.attitude.rotationMatrix;
-            
-            matrixA[0][0] =motion.attitude.rotationMatrix.m11;
-            matrixA[0][1] =motion.attitude.rotationMatrix.m12;
-            matrixA[0][2] =motion.attitude.rotationMatrix.m13;
-            
-            matrixA[1][0] =motion.attitude.rotationMatrix.m21;
-            matrixA[1][1] =motion.attitude.rotationMatrix.m22;
-            matrixA[1][2] =motion.attitude.rotationMatrix.m23;
-            
-            matrixA[2][0] =motion.attitude.rotationMatrix.m31;
-            matrixA[2][1] =motion.attitude.rotationMatrix.m32;
-            matrixA[2][2] =motion.attitude.rotationMatrix.m33;
-            
-            vDSP_mmul(&matrixA[0][0], 1, &matrixB[0][0], 1, &matrixC[0][0], 1, 3, 3, 3);
-            
-            dspFaustMotion->setParamValue("/Motion/brasD_x", (-1)*matrixC[0][0]);
-            dspFaustMotion->setParamValue("/Motion/brasD_y", (-1)*matrixC[0][1]);
-            dspFaustMotion->setParamValue("/Motion/brasD_z", (-1)*matrixC[0][2]);
-            
-            dspFaustMotion->setParamValue("/Motion/pieds_x", (-1)*matrixC[1][0]);
-            dspFaustMotion->setParamValue("/Motion/pieds_y", (-1)*matrixC[1][1]);
-            dspFaustMotion->setParamValue("/Motion/pieds_z", (-1)*matrixC[1][2]);
-            
-            dspFaustMotion->setParamValue("/Motion/dos_x", (-1)*matrixC[2][0]);
-            dspFaustMotion->setParamValue("/Motion/dos_y", (-1)*matrixC[2][1]);
-            dspFaustMotion->setParamValue("/Motion/dos_z", (-1)*matrixC[2][2]);
-            
-            dspFaustMotion->setParamValue("/Motion/brasG_x", matrixC[0][0]);
-            dspFaustMotion->setParamValue("/Motion/brasG_y", matrixC[0][1]);
-            dspFaustMotion->setParamValue("/Motion/brasG_z", matrixC[0][2]);
-            
-            dspFaustMotion->setParamValue("/Motion/tete_x", matrixC[1][0]);
-            dspFaustMotion->setParamValue("/Motion/tete_y", matrixC[1][1]);
-            dspFaustMotion->setParamValue("/Motion/tete_z", matrixC[1][2]);
-            
-            dspFaustMotion->setParamValue("/Motion/ventre_x", matrixC[2][0]);
-            dspFaustMotion->setParamValue("/Motion/ventre_y", matrixC[2][1]);
-            dspFaustMotion->setParamValue("/Motion/ventre_z", matrixC[2][2]);
-            
-            /* crash... comment for now
-            if (referenceAttitude != nil) {
-                [motion.attitude multiplyByInverseOfAttitude:referenceAttitude];
-                }
-
-                dspFaustMotion->setParamValue("/Motion/brasG_x", motion.attitude.rotationMatrix.m11);
-                dspFaustMotion->setParamValue("/Motion/brasG_y", motion.attitude.rotationMatrix.m12);
-                dspFaustMotion->setParamValue("/Motion/brasG_z", motion.attitude.rotationMatrix.m13);
-            
-                dspFaustMotion->setParamValue("/Motion/pieds_x", motion.attitude.rotationMatrix.m21);
-                dspFaustMotion->setParamValue("/Motion/pieds_y", motion.attitude.rotationMatrix.m22);
-                dspFaustMotion->setParamValue("/Motion/pieds_z", motion.attitude.rotationMatrix.m23);
-            
-                dspFaustMotion->setParamValue("/Motion/dos_x", motion.attitude.rotationMatrix.m31);
-                dspFaustMotion->setParamValue("/Motion/dos_y", motion.attitude.rotationMatrix.m32);
-                dspFaustMotion->setParamValue("/Motion/dos_z", motion.attitude.rotationMatrix.m33);
-            
-                dspFaustMotion->setParamValue("/Motion/brasD_x", (-1)*motion.attitude.rotationMatrix.m11);
-                dspFaustMotion->setParamValue("/Motion/brasD_y", (-1)*motion.attitude.rotationMatrix.m12);
-                dspFaustMotion->setParamValue("/Motion/brasD_z", (-1)*motion.attitude.rotationMatrix.m13);
-            
-                dspFaustMotion->setParamValue("/Motion/tete_x", (-1)*motion.attitude.rotationMatrix.m21);
-                dspFaustMotion->setParamValue("/Motion/tete_y", (-1)*motion.attitude.rotationMatrix.m22);
-                dspFaustMotion->setParamValue("/Motion/tete_z", (-1)*motion.attitude.rotationMatrix.m23);
-            
-                dspFaustMotion->setParamValue("/Motion/ventre_x", (-1)*motion.attitude.rotationMatrix.m31);
-                dspFaustMotion->setParamValue("/Motion/ventre_y", (-1)*motion.attitude.rotationMatrix.m32);
-                dspFaustMotion->setParamValue("/Motion/ventre_z", (-1)*motion.attitude.rotationMatrix.m33);
-             */
-            
-            }];
-    }];
+                                        withHandler:^(CMDeviceMotion* motion, NSError* error){
+                                            
+                                            [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+                                                
+                                                dspFaust->motionRender(motion.attitude.rotationMatrix.m11,motion.attitude.rotationMatrix.m12,motion.attitude.rotationMatrix.m13,motion.attitude.rotationMatrix.m21,motion.attitude.rotationMatrix.m22,motion.attitude.rotationMatrix.m23,motion.attitude.rotationMatrix.m31,motion.attitude.rotationMatrix.m32,motion.attitude.rotationMatrix.m33);
+                                                
+                                                
+                                            }];
+                                        }];
     
 }
 
 -(void) initFrame {
     
-    // referenceAttitude is an instance variable
     if (_motionManager!=nil) {
         
-        // inverse matrix the matrix reference
-        float a11 = referenceMatrix.m11;
-        float a12 = referenceMatrix.m12;
-        float a13 = referenceMatrix.m13;
-        float a21 = referenceMatrix.m21;
-        float a22 = referenceMatrix.m22;
-        float a23 = referenceMatrix.m23;
-        float a31 = referenceMatrix.m31;
-        float a32 = referenceMatrix.m32;
-        float a33 = referenceMatrix.m33;
-        
-        float detA=a11*a22*a33+a21*a32*a13+a31*a12*a23-a11*a32*a23-a31*a22*a13-a21*a12*a33;
-        
-        matrixB[0][0] =(1/detA)*(a22*a33-a23*a32);
-        matrixB[0][1] =(1/detA)*(a13*a32-a12*a33);
-        matrixB[0][2] =(1/detA)*(a12*a23-a13*a22);
-        
-        matrixB[1][0] =(1/detA)*(a23*a31-a21*a33);
-        matrixB[1][1] =(1/detA)*(a11*a33-a13*a31);
-        matrixB[1][2] =(1/detA)*(a13*a21-a11*a23);
-        
-        matrixB[2][0] =(1/detA)*(a21*a32-a22*a31);
-        matrixB[2][1] =(1/detA)*(a12*a31-a11*a32);
-        matrixB[2][2] =(1/detA)*(a11*a22-a12*a21);
-        //referenceAttitude = _motionManager.deviceMotion.attitude;
+        dspFaust->initFrame();
         
     }
     
@@ -1106,7 +467,7 @@
 {
     
     _guiTimer = [NSTimer scheduledTimerWithTimeInterval:1./kGUIUpdateRate target:self
-                                                  selector:@selector(updateGUI) userInfo:nil repeats:YES];
+                                               selector:@selector(updateGUI) userInfo:nil repeats:YES];
     
 }
 
@@ -1123,22 +484,6 @@
 - (void)updateGUI
 {
     
-    if (tipIsOn) {
-        switch ((int)dspFaust->getParamValue(tipAddress)) {
-            case 1:
-                _tips.text = @"FaustTips:part1";
-                break;
-            case 2:
-                _tips.text = @"FaustTips:part2";
-                break;
-            case 3:
-                _tips.text = @"FaustTips:part4";
-                break;
-            case 4:
-                _tips.text = @"FaustTips:part4";
-                break;
-        }
-    }
     
 }
 
@@ -1152,32 +497,32 @@
     
     CGFloat screenWidth = [[UIScreen mainScreen] bounds].size.width;
     CGFloat screenHeight = [[UIScreen mainScreen] bounds].size.height;
-     
+    
     CGFloat pointX = point.x/screenWidth;
     CGFloat pointY = point.y/(screenHeight/2);
     
     if (cueIsOn) {
-    
-    if (point.y < screenHeight/2) {
         
-    if (touchGateIsOn) {
-    
-        dspFaust->setParamValue(touchGateAddress, 1);
-        [self counter];
-        _touch.alpha=1;
-    
-        if (magneticHeadingIsOn) {
-            offset = magnetic;
+        if (point.y < screenHeight/2) {
+            
+            if (touchGateIsOn) {
+                
+                dspFaust->setParamValue(touchGateAddress, 1);
+                [self counter];
+                _touch.alpha=1;
+                
+                if (magneticHeadingIsOn) {
+                    offset = magnetic;
+                }
+            }
+            if (screenXIsOn) {
+                dspFaust->setParamValue(screenXAddress, pointX);
+            }
+            if (screenYIsOn) {
+                dspFaust->setParamValue(screenYAddress, pointY);
+            }
+            
         }
-    }
-        if (screenXIsOn) {
-        dspFaust->setParamValue(screenXAddress, pointX);
-        }
-        if (screenYIsOn) {
-        dspFaust->setParamValue(screenYAddress, pointY);
-        }
-    
-    }
     }
 }
 
@@ -1185,62 +530,62 @@
             withEvent:(UIEvent *)event {
     //NSUInteger touchCount = [touches count];
     
-     UITouch *touch = [touches anyObject];
-     CGPoint point = [touch locationInView:self.view];
+    UITouch *touch = [touches anyObject];
+    CGPoint point = [touch locationInView:self.view];
     
     CGFloat screenWidth = [[UIScreen mainScreen] bounds].size.width;
     CGFloat screenHeight = [[UIScreen mainScreen] bounds].size.height;
-     
+    
     CGFloat pointX = point.x/screenWidth;
     CGFloat pointY = point.y/(screenHeight/2.0f);
     
     if (cueIsOn) {
         
-    if (point.y < screenHeight/2) {
-        
-        if (screenXIsOn) {
-        dspFaust->setParamValue(screenXAddress, (float)pointX);
+        if (point.y < screenHeight/2) {
+            
+            if (screenXIsOn) {
+                dspFaust->setParamValue(screenXAddress, (float)pointX);
+            }
+            if (screenYIsOn) {
+                dspFaust->setParamValue(screenYAddress, pointY);
+            }
+            
         }
-        if (screenYIsOn) {
-        dspFaust->setParamValue(screenYAddress, pointY);
-        }
- 
-    }
     }
     
 }
 
 - (void) touchesEnded:(NSSet *)touches
             withEvent:(UIEvent *)event {
-   //NSUInteger touchCount = [touches count];
+    //NSUInteger touchCount = [touches count];
     
     UITouch *touch = [touches anyObject];
     CGPoint point = [touch locationInView:self.view];
     
     CGFloat screenWidth = [[UIScreen mainScreen] bounds].size.width;
     CGFloat screenHeight = [[UIScreen mainScreen] bounds].size.height;
-     
+    
     CGFloat pointX = point.x/screenWidth;
     CGFloat pointY = point.y/(screenHeight/2);
     
     if (cueIsOn) {
         
-    if (point.y < screenHeight/2) {
-        if (touchGateIsOn) {
-    
-        dspFaust->setParamValue(touchGateAddress, 0);
-        _touch.alpha=0.1;
-        }
-        
         if (point.y < screenHeight/2) {
-            if (screenXIsOn) {
-                dspFaust->setParamValue(screenXAddress, pointX);
+            if (touchGateIsOn) {
+                
+                dspFaust->setParamValue(touchGateAddress, 0);
+                _touch.alpha=0.1;
             }
-            if (screenYIsOn) {
-                dspFaust->setParamValue(screenYAddress, pointY);
+            
+            if (point.y < screenHeight/2) {
+                if (screenXIsOn) {
+                    dspFaust->setParamValue(screenXAddress, pointX);
+                }
+                if (screenYIsOn) {
+                    dspFaust->setParamValue(screenYAddress, pointY);
+                }
             }
         }
-    }
     }
 }
 
@@ -1256,25 +601,25 @@
         dspFaust->setParamValue(cueAddress, cueNum);
     }
     if (cueIndexNext < [myCueNumArrary count] -1) {
-    cueIndexNext++;
-    cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
-    _cueNext.text= [NSString stringWithFormat:@"%ld",(long)cueNumNext];
+        cueIndexNext++;
+        cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
+        _cueNext.text= [NSString stringWithFormat:@"%ld",(long)cueNumNext];
     }
 }
 
 
 
 - (IBAction)setOSC:(id)sender {
-  
+    
     [_ip resignFirstResponder];
     [_inPort resignFirstResponder];
     [_outPort resignFirstResponder];
- 
-   NSString* _oscIPOutputText = _ip.text;
-   NSString* _oscInputPortText = _inPort.text;
-   NSString* _oscOutputPortText = _outPort.text;
     
-   dspFaust->setOSCValue([_oscIPOutputText cStringUsingEncoding:[NSString defaultCStringEncoding]], [_oscInputPortText cStringUsingEncoding:[NSString defaultCStringEncoding]], [_oscOutputPortText cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSString* _oscIPOutputText = _ip.text;
+    NSString* _oscInputPortText = _inPort.text;
+    NSString* _oscOutputPortText = _outPort.text;
+    
+    dspFaust->setOSCValue([_oscIPOutputText cStringUsingEncoding:[NSString defaultCStringEncoding]], [_oscInputPortText cStringUsingEncoding:[NSString defaultCStringEncoding]], [_oscOutputPortText cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [[NSUserDefaults standardUserDefaults] setObject:_oscIPOutputText forKey:@"oscAddress"];
     [[NSUserDefaults standardUserDefaults] setObject:_oscInputPortText forKey:@"oscInPort"];
@@ -1306,7 +651,7 @@
         _motionParam.hidden=true;
         _motionParamSend.hidden=true;
         _setRefrence.hidden=true;
-    
+        
     }
     
 }
@@ -1342,16 +687,16 @@
 - (IBAction)prevCue:(id)sender {
     
     if (cueIndexNext > 0) {
-    cueIndexNext--;
-    cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
-    _cueNext.text= [NSString stringWithFormat:@"%ld",(long)cueNumNext];
-    _tips.text = [myCueTipsArrary objectAtIndex:cueIndexNext];
+        cueIndexNext--;
+        cueNumNext = [[myCueNumArrary objectAtIndex:cueIndexNext] integerValue];
+        _cueNext.text= [NSString stringWithFormat:@"%ld",(long)cueNumNext];
+        _tips.text = [myCueTipsArrary objectAtIndex:cueIndexNext];
     }
 }
 
 
 - (IBAction)defautParam:(id)sender {
-
+    
     
     [_ip resignFirstResponder];
     [_inPort resignFirstResponder];
@@ -1364,11 +709,12 @@
     
     _motionParam.text = @"Done";
     
+    dspFaust->checkAdress();
     [self checkAddress];
     
     [self resetDefaultParams];
-
-
+    
+    
 }
 
 
@@ -1377,217 +723,23 @@
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, pickerView.frame.size.width, 44)];
     label.backgroundColor = [UIColor grayColor];
     label.textColor = [UIColor whiteColor];
-    label.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:18];
+    label.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:17];
     
     label.text = [_motionParamArray objectAtIndex:row];
     return label;
 }
 
 
-
 -(void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component {
     
-    
-    NSString *seletedParam = [_motionParamArray objectAtIndex:row];
-
-    if ([seletedParam isEqualToString:@"lp"]) {
-        lpIsOn = true;
-         hpIsOn = false;
-         shok_thrIsOn= false;
-         antirebonIsOn= false;
-         osfprojIsOn= false;
-         tacc_thrIsOn= false;
-         tacc_gainIsOn= false;
-         tacc_upIsOn= false;
-         tacc_downIsOn= false;
-         tgyr_thrIsOn= false;
-         tgyr_gainIsOn= false;
-         tgyr_upIsOn= false;
-         tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/lp")];
-    } else if ([seletedParam isEqualToString:@"shok_thr"]) {
-        lpIsOn = false;
-        hpIsOn = false;
-        shok_thrIsOn= true;
-        antirebonIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/shok_thr")];
-    } else if ([seletedParam isEqualToString:@"hp"]) {
-        hpIsOn = true;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        antirebonIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/hp")];
-    } else if ([seletedParam isEqualToString:@"antirebon"]) {
-        antirebonIsOn = true;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/antirebon")];
-    } else if ([seletedParam isEqualToString:@"tacc_thr"]) {
-        tacc_thrIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tacc_thr")];
-    } else if ([seletedParam isEqualToString:@"tacc_gain"]) {
-        tacc_gainIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tacc_gain")];
-    } else if ([seletedParam isEqualToString:@"tacc_up"]) {
-        tacc_upIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tacc_up")];
-    } else if ([seletedParam isEqualToString:@"tacc_down"]) {
-        tacc_downIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tacc_down")];
-    } else if ([seletedParam isEqualToString:@"tgyr_thr"]) {
-        tgyr_thrIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tgyr_thr")];
-    } else if ([seletedParam isEqualToString:@"tgyr_gain"]) {
-        tgyr_gainIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tgyr_gain")];
-    } else if ([seletedParam isEqualToString:@"tgyr_up"]) {
-        tgyr_upIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tgyr_up")];
-    } else if ([seletedParam isEqualToString:@"tgyr_down"]) {
-        tgyr_downIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        osfprojIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/tgyr_down")];
-    } else if ([seletedParam isEqualToString:@"osfproj"]) {
-        osfprojIsOn = true;
-        antirebonIsOn = false;
-        hpIsOn = false;
-        lpIsOn = false;
-        shok_thrIsOn= false;
-        tacc_thrIsOn= false;
-        tacc_gainIsOn= false;
-        tacc_upIsOn= false;
-        tacc_downIsOn= false;
-        tgyr_thrIsOn= false;
-        tgyr_gainIsOn= false;
-        tgyr_upIsOn= false;
-        tgyr_downIsOn= false;
-        _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue("/Motion/osfproj")];
+    for (int i=0; i< _motionParamArray.count; i++) {
+        paramsOn[i]=false;
     }
-
-
+    
+    paramsOn[row]=true;
+    
+    _motionParam.text = [NSString stringWithFormat:@"%.2f", dspFaustMotion->getParamValue([_motionParamAddress[row] UTF8String])];
+    
 }
 
 // number Of Components
@@ -1600,7 +752,7 @@
 - (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:   (NSInteger)component
 {
     
-   
+    
     return _motionParamArray.count;
 }
 
@@ -1609,52 +761,18 @@
     
     
     return _motionParamArray[row];
-
+    
 }
 
 - (IBAction)motionParamSend:(id)sender {
     
     [_motionParam resignFirstResponder];
     
-    if (lpIsOn) {
-        dspFaustMotion->setParamValue("/Motion/lp", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/lp"];
-    }else if (hpIsOn) {
-        dspFaustMotion->setParamValue("/Motion/hp", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/hp"];
-    }else if (shok_thrIsOn) {
-        dspFaustMotion->setParamValue("/Motion/shok_thr", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/shok_thr"];
-    }else if (antirebonIsOn) {
-        dspFaustMotion->setParamValue("/Motion/antirebon", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/antirebon"];
-    }else if (tacc_thrIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tacc_thr", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tacc_thr"];
-    }else if (tacc_gainIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tacc_gain", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tacc_gain"];
-    }else if (tacc_upIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tacc_up", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tacc_up"];
-    }else if (tacc_downIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tacc_down", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tacc_down"];
-    }else if (tgyr_thrIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tgyr_thr", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tgyr_thr"];
-    }else if (tgyr_gainIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tgyr_gain", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tgyr_gain"];
-    }else if (tgyr_upIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tgyr_up", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tgyr_up"];
-    }else if (tgyr_downIsOn) {
-        dspFaustMotion->setParamValue("/Motion/tgyr_down", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/tgyr_down"];
-    }else if (osfprojIsOn) {
-        dspFaustMotion->setParamValue("/Motion/osfproj", [_motionParam.text floatValue]);
-        [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:@"/Motion/osfproj"];
+    for (int i=0; i< _motionParamArray.count; i++) {
+        if (paramsOn[i]) {
+            dspFaustMotion->setParamValue([_motionParamAddress[i] UTF8String], [_motionParam.text floatValue]);
+            [[NSUserDefaults standardUserDefaults] setFloat:[_motionParam.text floatValue] forKey:_motionParamArray[i]];
+        }
     }
     
     [[NSUserDefaults standardUserDefaults] synchronize];
